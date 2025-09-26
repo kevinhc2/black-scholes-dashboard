@@ -1,1 +1,1 @@
-A visualization dashboard for Black-Scholes pricing model. 
+A visualization dashboard for Black-Scholes, for quick analysis of option prices. 
