@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from models.schemas import OptionContract
 import requests
 import os
 
@@ -14,12 +15,6 @@ app = FastAPI()
 
 fake_user_option_db = {}
 fake_option_db = {}
-
-class OptionContract(BaseModel):
-    contract_type: str # Either call or put
-    exercise_style: str # Either american or european
-    strike_price: float
-    expiration_date: str # In the format YYYY-MM-DD
 
 def get_options_contract(ticker: str):
     if ticker not in fake_option_db:
