@@ -1,39 +1,57 @@
+from typing import List
 from fastapi import FastAPI, HTTPException
-from dotenv import load_dotenv
-from pydantic import BaseModel
-from models.schemas import OptionContract
-import requests
-import os
-
-load_dotenv()  # Load environment variables from .env file
-POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
-
-if not POLYGON_API_KEY:
-    raise RuntimeError("POLYGON_API_KEY environment variable not set.")
+from services.polygon_client import get_options_contract
+from schemas.schemas import OptionCreate, Option, OptionUpdate
 
 app = FastAPI()
 
-fake_user_option_db = {}
-fake_option_db = {}
+option_db: List[Option] = []
 
-def get_options_contract(ticker: str):
-    if ticker not in fake_option_db:
-        url = f"https://api.polygon.io/v3/reference/options/contracts/{ticker}?apiKey={POLYGON_API_KEY}"
-        res = requests.get(url)
-        if res.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch data from Polygon API")
-        fake_option_db[ticker] = res.json()
-        return res.json()
-    return fake_option_db[ticker]
+@app.get("/option/{id}", response_model=Option)
+def get_option(id: int):
+    for option in option_db:
+        if option.option_id == id:
+            return option
+    raise HTTPException(status_code=404, detail="Option contract not found")
 
-@app.get("/option/{ticker}")
-def read_option(ticker: str):
-    data = get_options_contract(ticker)
-    return data
+@app.get("/options", response_model=List[Option])
+def get_options(first_n: int = None, offset: int = 0):
+    if first_n:
+        return option_db[offset: offset + first_n]
+    return option_db
 
-@app.post("/option/create")
-def create_option(option: OptionContract):
-    id = len(fake_user_option_db) + 1
-    option_dict = option.dict()
-    fake_user_option_db[id] = option_dict
-    return {"id": id, **option_dict}
+@app.post("/option/create", response_model=Option)
+def create_option(option: OptionCreate):
+    new_id = len(option_db) + 1
+    new_option = Option (
+        option_id = new_id,
+        contract_type = option.contract_type,
+        exercise_style = option.exercise_style, 
+        strike_price = option.strike_price,
+    )
+    option_db.append(new_option)
+    return new_option
+
+@app.put("/options/{option_id}", respose_model=Option)
+def update_option(option_id: int, updated_option: OptionUpdate):
+    for option in option_db:
+        if option.option_id == option_id:
+            if updated_option.contract_type is not None:
+                option.contract_type = updated_option.contract_type
+            if updated_option.exercise_style is not None:
+                option.exercise_style = updated_option.exercise_style
+            if updated_option.strike_price is not None:
+                option.strike_price = updated_option.strike_price
+            if updated_option.expiration_date is not None:
+                option.expiration_date = updated_option.expiration_date
+            return option
+    
+    raise HTTPException(status_code=404, detail="Option contract not found")
+
+@app.delete("/options/{option_id}")
+def delete_option(option_id: int):
+    for index, option in enumerate(option_db):
+        if option.option_id == option_id:
+            del option_db[index]
+            return {"detail": "Option contract deleted"}
+    raise HTTPException(status_code=404, detail="Option contract not found")
