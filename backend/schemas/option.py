@@ -22,7 +22,7 @@ class OptionCreate(OptionBase):
     pass
 
 class Option(OptionBase):
-    option_id: int
+    id: int
 
 class OptionUpdate(BaseModel):
     contract_type: Annotated[Optional[ContractType], Field(None, description="Option contract type, either 'call' or 'put'")]

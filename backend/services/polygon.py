@@ -1,10 +1,10 @@
-import httpx
-import os
-from dotenv import load_dotenv
 from fastapi import HTTPException
 
-load_dotenv()  # Load environment variables from .env file
-POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
+from core.config import settings
+
+import httpx
+
+POLYGON_API_KEY = settings.polygon_api_key
 
 if not POLYGON_API_KEY:
     raise RuntimeError("POLYGON_API_KEY environment variable not set.")
